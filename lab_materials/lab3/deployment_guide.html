@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 3 — Deploy with Cloudflare</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;padding:32px 16px}
+    .container{max-width:780px;margin:0 auto}
+
+    /* Badge */
+    .lab-badge{display:inline-flex;align-items:center;gap:8px;background:#fff4e8;border:1px solid #f6821f;color:#c05621;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+
+    h1{font-size:24px;color:#1a1a2e;margin-bottom:6px}
+    .subtitle{color:#6c757d;font-size:14px;margin-bottom:28px}
+
+    /* Cards */
+    .card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px}
+    .card h2{font-size:16px;color:#1a1a2e;margin-bottom:16px}
+
+    /* What is Cloudflare */
+    .cf-explainer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:4px}
+    .cf-exp-item{background:#fff4e8;border:1px solid #fed7aa;border-radius:8px;padding:14px;text-align:center}
+    .cf-exp-item .cf-icon{font-size:22px;margin-bottom:6px}
+    .cf-exp-item .cf-title{font-size:13px;font-weight:700;color:#9a3412;margin-bottom:4px}
+    .cf-exp-item .cf-desc{font-size:12px;color:#6b7280;line-height:1.4}
+
+    /* Phase steps */
+    .phase{border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:16px}
+    .phase.git{background:#f0fdf4;border:1px solid #86efac}
+    .phase.github{background:#f5f3ff;border:1px solid #c4b5fd}
+    .phase.cf{background:#fff4e8;border:1px solid #fed7aa}
+    .phase.verify{background:#ecfdf5;border:1px solid #6ee7b7}
+    .phase-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;color:white}
+    .phase.git .phase-num{background:#10b981}
+    .phase.github .phase-num{background:#7c3aed}
+    .phase.cf .phase-num{background:#f6821f}
+    .phase.verify .phase-num{background:#059669}
+    .phase-content h3{font-size:15px;font-weight:700;margin-bottom:8px}
+    .phase.git .phase-content h3{color:#15803d}
+    .phase.github .phase-content h3{color:#6d28d9}
+    .phase.cf .phase-content h3{color:#c05621}
+    .phase.verify .phase-content h3{color:#059669}
+    .phase-content ol{padding-left:18px}
+    .phase-content li{font-size:13px;color:#374151;margin-bottom:6px;line-height:1.5}
+
+    /* Command blocks */
+    .cmd-block{background:#1e293b;border-radius:6px;padding:10px 14px;margin:10px 0;position:relative}
+    .cmd-block code{color:#a3e635;font-size:12px;font-family:'Courier New',monospace;line-height:1.9;display:block;white-space:pre;background:transparent;padding:0;border-radius:0}
+    .cmd-block code .comment{color:#546277}
+    .cmd-block code .output{color:#94a3b8}
+    .cmd-block code .highlight{color:#fbbf24}
+    .copy-btn-cmd{position:absolute;top:8px;right:8px;padding:4px 10px;background:rgba(255,255,255,0.1);color:#94a3b8;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-family:'Segoe UI',sans-serif}
+    .copy-btn-cmd:hover{background:rgba(255,255,255,0.18);color:white}
+    .copy-btn-cmd.copied{background:#10b981;color:white}
+
+    /* CF UI walkthrough */
+    .cf-ui-steps{background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-top:10px}
+    .cf-ui-step{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#374151;line-height:1.5;align-items:flex-start}
+    .cf-ui-step:last-child{border-bottom:none;padding-bottom:0}
+    .cf-ui-step .step-arrow{color:#f6821f;font-weight:700;font-size:15px;flex-shrink:0;margin-top:1px}
+    .cf-ui-step strong{color:#c05621}
+    .screen-crumb{display:inline-block;background:#1e293b;color:#fbbf24;font-family:'Courier New',monospace;font-size:11px;padding:2px 7px;border-radius:4px;margin:2px 0}
+
+    /* CF note box */
+    .cf-note{background:#fff4e8;border-left:4px solid #f6821f;border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13px;color:#374151;line-height:1.5}
+    .cf-note strong{color:#c05621}
+
+    /* Troubleshooting */
+    .trouble-item{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin-bottom:8px}
+    .trouble-item .problem{font-size:13px;font-weight:600;color:#92400e;margin-bottom:4px}
+    .trouble-item .solution{font-size:13px;color:#374151;line-height:1.5}
+
+    /* Backup path */
+    .backup-path{background:#fef3c7;border:2px dashed #fbbf24;border-radius:8px;padding:16px}
+    .backup-path h4{color:#d97706;font-size:14px;margin-bottom:8px}
+    .backup-path ol{padding-left:18px}
+    .backup-path li{font-size:13px;color:#374151;margin-bottom:5px;line-height:1.5}
+
+    /* Checklist */
+    .checklist-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;background:#f8fafc}
+    .checklist-item:hover{border-color:#f6821f;background:#fff4e8}
+    .checklist-item.checked{background:#f0fdf4;border-color:#86efac}
+    .checklist-item .cb{width:20px;height:20px;border:2px solid #d1d5db;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all 0.15s}
+    .checklist-item.checked .cb{background:#10b981;border-color:#10b981;color:white}
+    .checklist-item span{font-size:13px;color:#374151;line-height:1.4}
+
+    /* Win banner */
+    .win-banner{background:linear-gradient(135deg,#f6821f,#faad3f);border-radius:10px;padding:22px;color:white;text-align:center}
+    .win-banner h3{font-size:20px;font-weight:700;margin-bottom:6px}
+    .win-banner p{font-size:14px;opacity:0.9}
+
+    code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px}
+    a{color:#f6821f;text-decoration:none;font-weight:600}
+    a:hover{text-decoration:underline}
+    @media (max-width:768px) {
+      body{padding:24px 12px}
+      .container{max-width:100%}
+      .card{padding:18px}
+      h1{font-size:20px}
+      .cf-explainer{grid-template-columns:1fr}
+      .phase{flex-direction:column;gap:10px;padding:14px 16px}
+      .phase-num{width:32px;height:32px;font-size:14px}
+      .cmd-block{padding:12px;overflow-x:auto}
+      .cmd-block code{font-size:11px;white-space:pre-wrap;word-break:break-word}
+      .cf-ui-steps{padding:12px}
+      .cf-ui-step{flex-direction:column;gap:6px}
+      .screen-crumb{font-size:10px;word-break:break-all}
+      .trouble-item{padding:10px 12px}
+      .trouble-item .solution code{display:block;margin:4px 0;word-break:break-all}
+      .backup-path{padding:14px}
+      .win-banner{padding:16px}
+      .win-banner h3{font-size:18px}
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="lab-badge">☁️ Lab 3 — Cloudflare Deployment</div>
+  <h1>Deploy to the Internet</h1>
+  <br>
+  <p class="subtitle">Push your patched code to GitHub → connect Cloudflare Pages → get a live HTTPS URL → verify your security headers score A+.</p>
+
+  <!-- WHAT IS CLOUDFLARE -->
+  <div class="card">
+    <h2>☁️ What is Cloudflare ?</h2>
+    <div class="cf-explainer">
+      <div class="cf-exp-item">
+        <div class="cf-icon">🌐</div>
+        <div class="cf-title">Global CDN</div>
+        <div class="cf-desc">Your site is served from 300+ data centres worldwide — extremely fast for every visitor</div>
+      </div>
+      <div class="cf-exp-item">
+        <div class="cf-icon">🔒</div>
+        <div class="cf-title">Free HTTPS</div>
+        <div class="cf-desc">Automatic SSL/TLS certificate. Your site gets the padlock instantly — no configuration needed</div>
+      </div>
+      <div class="cf-exp-item">
+        <div class="cf-icon">🔁</div>
+        <div class="cf-title">Auto Deploy</div>
+        <div class="cf-desc">Every push to GitHub triggers a new deployment automatically — no manual steps</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRE-FLIGHT CHECKLIST -->
+  <div class="card">
+    <h2>✅ Before You Start — Checklist</h2>
+    <div id="checklist">
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span><code>index.html</code> — uses <code>textContent</code> not <code>innerHTML</code> (Lab 1A fixed)</span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span><code>index.html</code> — XSS payload now appears as text, does not execute</span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span><code>_headers</code> file is in the <strong>root</strong> of your project folder — same level as <code>index.html</code></span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span>You have a <strong>GitHub</strong> account — logged in at <a href="https://github.com" target="_blank">github.com</a></span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span>You have a <strong>Cloudflare</strong> account — free at <a href="https://dash.cloudflare.com/sign-up/pages" target="_blank">dash.cloudflare.com</a></span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span>Git is installed — confirm with <code>git --version</code> in the VS Code terminal</span></div>
+    </div>
+  </div>
+
+  <!-- PHASE 1: GIT -->
+  <div class="phase git">
+    <div class="phase-num">1</div>
+    <div class="phase-content">
+      <h3>Initialise Git in Your Project Folder</h3>
+      <p style="font-size:13px;color:#374151;margin-bottom:8px">Open the VS Code terminal: <strong>View → Terminal</strong> (or press <strong>Ctrl+`</strong>). Check the terminal prompt shows your project folder.</p>
+      <div class="cmd-block">
+        <button class="copy-btn-cmd" onclick="copyCmd(this,`git init\ngit add .\ngit status\ngit commit -m &quot;Secure web app: fixed XSS, SQLi, CSRF, headers&quot;`)">Copy</button>
+        <code>git init
+<span class="output"># Expected: Initialized empty Git repository in .../my-project/.git/</span>
+
+git add .
+<span class="comment"># The dot ( . ) stages ALL files in this folder</span>
+
+git status
+<span class="output"># Files shown in green = staged and ready to commit</span>
+
+git commit -m "Secure web app: fixed XSS, SQLi, CSRF, headers"
+<span class="output"># Creates a snapshot. You'll see: [main (root-commit) abc1234]</span></code>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2: GITHUB -->
+  <div class="phase github">
+    <div class="phase-num">2</div>
+    <div class="phase-content">
+      <h3>Create a GitHub Repository and Push</h3>
+      <ol>
+        <li>Go to <a href="https://github.com" target="_blank">github.com</a> → click <strong>+</strong> (top right) → <strong>New repository</strong></li>
+        <li>Name: <code>secure-web-app</code> &nbsp;·&nbsp; Visibility: <strong>Public</strong> &nbsp;·&nbsp; <strong>Do NOT tick</strong> any initialisation checkboxes (no README, no .gitignore, no licence)</li>
+        <li>Click <strong>Create repository</strong>. Copy the HTTPS URL shown — e.g. <code>https://github.com/YOUR_NAME/secure-web-app.git</code></li>
+        <li>Back in the VS Code terminal:</li>
+      </ol>
+      <div class="cmd-block">
+        <button class="copy-btn-cmd" onclick="copyCmd(this,`git remote add origin https://github.com/YOUR_USERNAME/secure-web-app.git\ngit branch -M main\ngit push -u origin main`)">Copy</button>
+        <code>git remote add origin https://github.com/<span class="highlight">YOUR_USERNAME</span>/secure-web-app.git
+<span class="comment"># Replace YOUR_USERNAME with your actual GitHub username</span>
+
+git branch -M main
+<span class="comment"># Renames the branch to 'main' — the modern default</span>
+
+git push -u origin main
+<span class="comment"># Uploads your code to GitHub. May ask for login.</span>
+<span class="output"># Success: Branch 'main' set up to track remote branch 'main' from 'origin'</span></code>
+      </div>
+      <p style="font-size:13px;color:#374151;margin-top:8px">✅ Refresh <code>github.com/YOUR_USERNAME/secure-web-app</code> — all your files should appear.</p>
+    </div>
+  </div>
+
+  <!-- PHASE 3: CLOUDFLARE PAGES -->
+  <div class="phase cf">
+    <div class="phase-num">3</div>
+    <div class="phase-content">
+      <h3>Deploy with Cloudflare Pages</h3>
+
+      <div class="cf-note">
+        <strong>📌 About the _headers file on Cloudflare Pages</strong><br>
+        Cloudflare Pages supports the exact same <code>_headers</code> file format. Place it in your project root and Cloudflare reads it automatically — no extra configuration needed. Your security headers will be live from the first deployment.
+      </div>
+
+      <div class="cf-ui-steps">
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>Go to <a href="https://dash.cloudflare.com" target="_blank">dash.cloudflare.com</a> and log in to your Cloudflare account.</span>
+        </div>
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>In the left sidebar, click <strong>Workers &amp; Pages</strong>.</span>
+        </div>
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>Click <strong>Create application</strong> button → click <strong>Connect with GitHub</strong>.</span>
+        </div>
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>Select your <strong>GitHub Account</strong>. Authorise Cloudflare to access your GitHub account when prompted.</span>
+        </div>
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>Select your <strong>web-app</strong> repository from the list. Click <strong>Next</strong> to set up your application.</span>
+        </div>
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>
+            <strong>Build settings — leave all three fields blank or as shown:</strong><br>
+            <span class="screen-crumb">Project name → your domain name</span><br>
+            <span class="screen-crumb">Build command → (leave empty)</span><br>
+            <span class="screen-crumb">Deploy command → npx wrangler deploy</span><br>
+            <span class="screen-crumb"> Builds for non-production branches → tick to enable </span><br>
+            Our site is plain HTML — no advanced settings are needed.
+          </span>
+        </div>
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>Click <strong>Deploy</strong>. Watch the deployment log — takes about 20–40 seconds.</span>
+        </div>
+        <div class="cf-ui-step">
+          <span class="step-arrow">→</span>
+          <span>When done, Cloudflare gives you a URL like: <code>{domain}.{subdomain}.workers.dev</code><br>
+          Click it — <strong>your site is LIVE on the internet with HTTPS!</strong> 🎉</span>
+        </div>
+      </div>
+
+      <div class="cf-note" style="margin-top:12px;margin-bottom:0">
+        <strong>🔁 Future updates are automatic.</strong> Every time you <code>git push</code> to GitHub, Cloudflare Pages detects it and re-deploys within ~1 minute. No need to log into Cloudflare again.
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 4: VERIFY -->
+  <div class="phase verify">
+    <div class="phase-num">4</div>
+    <div class="phase-content">
+      <h3>Verify Your Security Headers</h3>
+      <ol>
+        <li>Copy your Cloudflare Pages URL — e.g. <code>{domain}.{subdomain}.workers.dev</code></li>
+        <li>Go to <a href="https://securityheaders.com" target="_blank">securityheaders.com</a></li>
+        <li>Paste your URL → click <strong>Scan</strong></li>
+        <li>Target: <strong>A or A+</strong> grade</li>
+        <li>Share your URL and grade in the class chat! 🎉</li>
+      </ol>
+      <p style="font-size:13px;color:#374151;margin-top:8px">If you get B or lower: check your <code>_headers</code> file is in the project root (not in a subfolder) and has no file extension. Re-commit and push — Cloudflare will auto-redeploy.</p>
+    </div>
+  </div>
+
+  <!-- FUTURE UPDATES -->
+  <div class="card">
+    <h2>🔁 Updating Your Site After Deployment</h2>
+    <p style="font-size:13px;color:#6c757d;margin-bottom:10px">Once Cloudflare Pages is connected to your GitHub repository, every push triggers a new deployment automatically.</p>
+    <div class="cmd-block">
+      <button class="copy-btn-cmd" onclick="copyCmd(this,`git add .\ngit commit -m &quot;Update: describe your change&quot;\ngit push`)">Copy</button>
+      <code>git add .
+git commit -m "Update: describe your change"
+git push
+<span class="output"># Cloudflare Pages detects the push and redeploys in ~1 minute</span>
+<span class="comment"># No need to log into Cloudflare — it's fully automatic</span></code>
+    </div>
+  </div>
+
+  <!-- TROUBLESHOOTING -->
+  <div class="card">
+    <h2>🔧 Troubleshooting</h2>
+    <div class="trouble-item">
+      <div class="problem">Error: "git: command not found" or "git is not recognised"</div>
+      <div class="solution">Git is not installed. Download from <a href="https://git-scm.com" target="_blank">git-scm.com</a>, install it, then <strong>restart VS Code</strong>. If you can't install it right now, use the drag-and-drop backup path below.</div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">Error: "Please tell me who you are"</div>
+      <div class="solution">Run these two commands, then retry the commit:<br>
+        <code>git config --global user.email "your@email.com"</code><br>
+        <code>git config --global user.name "Your Name"</code>
+      </div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">Error: "Authentication failed" when pushing to GitHub</div>
+      <div class="solution">GitHub no longer accepts your account password for <code>git push</code>. Create a Personal Access Token: GitHub → profile picture → <strong>Settings</strong> → <strong>Developer settings</strong> (bottom of left sidebar) → <strong>Personal access tokens</strong> → <strong>Tokens (classic)</strong> → <strong>Generate new token</strong> → tick the <strong>repo</strong> scope → Generate. Use this token as the password.</div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">Cloudflare Pages build failed</div>
+      <div class="solution">Make sure <strong>Build command</strong> and <strong>Build output directory</strong> are both empty in the Pages settings. Our site is static HTML — no build step. To fix: go to your Pages project → <strong>Settings</strong> → <strong>Builds &amp; deployments</strong> → clear both fields → <strong>Retry deployment</strong>.</div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">securityheaders.com gives grade B, C, or F</div>
+      <div class="solution">Check these in order: (1) The file is named exactly <code>_headers</code> — no <code>.txt</code>, no extension of any kind. (2) The file is in the <strong>project root</strong> — same folder as <code>index.html</code>, not inside a subfolder. (3) Commit and push again — Cloudflare will redeploy with the corrected file.</div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">Error: "nothing to commit" when running git commit</div>
+      <div class="solution">All your changes are already saved. Make sure you saved files in VS Code first (Ctrl+S on each open file), then run <code>git add .</code> again before committing.</div>
+    </div>
+  </div>
+
+  <!-- BACKUP PATH -->
+  <div class="card">
+    <div class="backup-path">
+      <h4>🔄 Backup Path — Deploy Without Git (Direct Upload)</h4>
+      <p style="font-size:13px;color:#92400e;margin-bottom:10px">If Git isn't working, Cloudflare Pages supports direct folder upload:</p>
+      <ol>
+        <li>Go to <a href="https://dash.cloudflare.com" target="_blank">dash.cloudflare.com</a> → <strong>Workers &amp; Pages</strong> → <strong>Create application</strong> → <strong>Pages</strong></li>
+        <li>Instead of "Connect to Git", click <strong>Upload assets</strong> (the Direct Upload option)</li>
+        <li>Give your project a name, e.g. <code>secure-web-app</code></li>
+        <li>Drag your entire <strong>project folder</strong> (not individual files) onto the upload area — make sure the <code>_headers</code> file is inside the folder</li>
+        <li>Click <strong>Deploy site</strong> — you get a live URL in seconds</li>
+      </ol>
+      <p style="font-size:12px;color:#92400e;margin-top:8px">Note: with direct upload, future changes require re-uploading manually. The GitHub-connected path is recommended for ongoing work.</p>
+    </div>
+  </div>
+
+  <!-- WIN BANNER -->
+  <div class="win-banner">
+    <h3>🎉 You shipped secure code to the internet!</h3>
+    <p>HTTPS automatic · Security headers verified · Git workflow · Real deployment pipeline</p>
+    <p style="margin-top:6px;font-size:13px">Share your <code style="background:rgba(0,0,0,0.2);color:white;border-radius:3px;padding:1px 5px">yoursite.workers.dev</code> URL in the class chat → scan at securityheaders.com → screenshot your A+ 🏆</p>
+  </div>
+
+</div>
+<script>
+  function tick(el) {
+    el.classList.toggle('checked');
+    el.querySelector('.cb').textContent = el.classList.contains('checked') ? '✓' : '';
+  }
+
+  function copyCmd(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => { btn.textContent = 'Select & copy manually'; });
+  }
+</script>
+</body>
+</html>

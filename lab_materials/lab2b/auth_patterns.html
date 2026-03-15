@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 2B — Authentication Patterns</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;padding:32px 16px}
+    .container{max-width:860px;margin:0 auto}
+    .lab-badge{display:inline-flex;align-items:center;gap:8px;background:#fce7f3;border:1px solid #ec4899;color:#9d174d;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+    h1{font-size:24px;color:#1a1a2e;margin-bottom:6px}
+    .subtitle{color:#6c757d;font-size:14px;margin-bottom:28px}
+    .card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px}
+    .card h2{font-size:16px;color:#1a1a2e;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .instructions{background:#fdf4ff;border-left:4px solid #ec4899;border-radius:0 8px 8px 0;padding:16px 20px}
+    .instructions h3{color:#9d174d;font-size:14px;margin-bottom:10px}
+    .instructions ol{padding-left:18px}
+    .instructions li{font-size:13px;color:#374151;margin-bottom:7px;line-height:1.5}
+    /* Pattern comparison grid */
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .pattern-card{border-radius:10px;padding:16px;border:2px solid transparent}
+    .pattern-card.bad{background:#fef2f2;border-color:#fca5a5}
+    .pattern-card.warn{background:#fffbeb;border-color:#fde68a}
+    .pattern-card.good{background:#f0fdf4;border-color:#86efac}
+    .pattern-card h4{font-size:14px;font-weight:700;margin-bottom:4px}
+    .pattern-card.bad h4{color:#dc2626}
+    .pattern-card.warn h4{color:#d97706}
+    .pattern-card.good h4{color:#16a34a}
+    .pattern-card .verdict{font-size:12px;font-weight:600;padding:3px 8px;border-radius:10px;display:inline-block;margin-bottom:10px}
+    .pattern-card.bad .verdict{background:#fecaca;color:#991b1b}
+    .pattern-card.warn .verdict{background:#fde68a;color:#92400e}
+    .pattern-card.good .verdict{background:#bbf7d0;color:#166534}
+    .pattern-card .stats{font-size:12px;color:#6b7280;margin-bottom:10px}
+    .code-snippet{background:#1e293b;border-radius:6px;padding:10px;font-family:'Courier New',monospace;font-size:11px;line-height:1.5}
+    .code-snippet.bad-code{color:#f87171}
+    .code-snippet.good-code{color:#86efac}
+    .code-snippet.warn-code{color:#fde68a}
+    /* Cookie flags */
+    .flags-table{width:100%;border-collapse:collapse;font-size:13px}
+    .flags-table th{background:#f8fafc;padding:10px 12px;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0}
+    .flags-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+    .flags-table tr:last-child td{border-bottom:none}
+    .flag-name{font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#7c3aed;background:#f5f3ff;padding:3px 7px;border-radius:4px}
+    .flag-blocks{font-size:12px;color:#374151}
+    .flag-without{font-size:12px;color:#dc2626}
+    /* Token viz */
+    .token-demo-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px}
+    .token-demo-box label{font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px}
+    .token-display{font-family:'Courier New',monospace;font-size:13px;padding:10px 14px;border-radius:6px;word-break:break-all}
+    .token-display.bad-token{background:#fef2f2;color:#dc2626;border:1px solid #fca5a5}
+    .token-display.good-token{background:#f0fdf4;color:#16a34a;border:1px solid #86efac}
+    button.gen-btn{padding:8px 16px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-top:8px}
+    button.gen-btn:hover{background:#6d28d9}
+    .quiz-section{background:#fdf4ff;border-radius:8px;padding:16px}
+    .quiz-section h4{color:#7c3aed;font-size:14px;margin-bottom:12px}
+    .q-item{margin-bottom:14px}
+    .q-item p{font-size:13px;color:#374151;font-weight:600;margin-bottom:6px}
+    .q-item .answer{font-size:13px;color:#16a34a;background:#f0fdf4;border:1px solid #86efac;padding:8px 12px;border-radius:6px;display:none}
+    .q-item .answer.show{display:block}
+    .reveal-btn{padding:5px 12px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+    code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px}
+    @media (max-width:768px) {
+      body{padding:24px 12px}
+      .container{max-width:100%}
+      .card{padding:18px}
+      h1{font-size:20px}
+      .compare-grid{grid-template-columns:1fr}
+      .flags-table{font-size:11px}
+      .flags-table th,.flags-table td{padding:6px 8px}
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lab-badge">🔐 Lab 2B — Insecure Authentication</div>
+  <h1>Authentication Patterns</h1>
+  <p class="subtitle">Learn to recognise dangerous patterns and their safe alternatives — no backend needed.</p>
+
+  <div class="card">
+    <div class="instructions">
+      <h3>📋 Your Tasks</h3>
+      <ol>
+        <li>Read through the three password hashing patterns below. Identify which is safe and why.</li>
+        <li>In the Token Playground section, compare a predictable token vs a cryptographically secure one.</li>
+        <li>Study the Cookie Flags table — for each flag, know what attack it prevents.</li>
+        <li>Answer the three quiz questions at the bottom without looking at the answers first.</li>
+        <li><strong>Key insight:</strong> These three areas (hashing + tokens + cookie flags) together form a complete authentication system. Any one missing creates a vulnerability.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Password Hashing Comparison -->
+  <div class="card">
+    <h2>🔑 Password Storage — Three Patterns</h2>
+    <div class="compare-grid">
+      <div class="pattern-card bad">
+        <h4>Plaintext</h4>
+        <div class="verdict">❌ Catastrophic</div>
+        <p class="stats">0ms to crack · No protection</p>
+        <div class="code-snippet bad-code">// What gets stored:
+password = "hunter2"
+
+// DB leak → every password
+// instantly readable.
+// No cracking needed at all.</div>
+      </div>
+      <div class="pattern-card warn">
+        <h4>MD5 / SHA1</h4>
+        <div class="verdict">⚠️ Broken</div>
+        <p class="stats">~10 billion MD5/sec on GPU</p>
+        <div class="code-snippet warn-code">const hash = md5(password);
+// "hunter2" →
+// 2ab96390c7dbe3439de74d0c9b0b1545
+
+// GPU: 10,000,000,000 hashes/sec
+// All 8-char passwords: ~3 days
+// "hunter2" specifically: &lt;1sec
+// (rainbow tables exist)</div>
+      </div>
+      <div class="pattern-card good">
+        <h4>bcrypt (cost=12)</h4>
+        <div class="verdict">✅ Correct</div>
+        <p class="stats">~5 hashes/sec intentionally</p>
+        <div class="code-snippet good-code">const hash = await bcrypt.hash(
+  password, 12
+);
+// "hunter2" →
+// $2b$12$Wl8OR6c...randomsalt...
+
+// Same GPU: ~5 hashes/sec
+// All 8-char passwords: 500+ years
+// Unique salt per password:
+// rainbow tables useless</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Token Playground -->
+  <div class="card">
+    <h2>🎲 Session Token Playground</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="token-demo-box">
+          <label>❌ Predictable Token (timestamp-based)</label>
+          <div class="token-display bad-token" id="badToken">click Generate</div>
+          <button class="gen-btn" onclick="genBadToken()">Generate</button>
+          <p style="font-size:12px;color:#dc2626;margin-top:8px">Anyone who knows approximately WHEN you logged in can guess this.</p>
+        </div>
+      </div>
+      <div>
+        <div class="token-demo-box">
+          <label>✅ Cryptographically Random Token</label>
+          <div class="token-display good-token" id="goodToken">click Generate</div>
+          <button class="gen-btn" onclick="genGoodToken()">Generate</button>
+          <p style="font-size:12px;color:#16a34a;margin-top:8px">32 bytes = 2²⁵⁶ possible values. Guessing takes longer than the age of the universe.</p>
+        </div>
+      </div>
+    </div>
+    <div style="background:#1e293b;border-radius:8px;padding:14px;margin-top:12px">
+      <pre style="color:#e2e8f0;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;white-space:pre-wrap"><span style="color:#f87171">// ❌ DANGEROUS — predictable
+const token = 'session_' + Date.now();
+const token2 = 'user_' + userId;          // Sequential!</span>
+
+<span style="color:#86efac">// ✅ SECURE — crypto random
+const crypto = require('crypto');
+const token = crypto.randomBytes(32).toString('hex');
+// 64 hex characters, unpredictable, unique every time</span></pre>
+    </div>
+  </div>
+
+  <!-- Cookie Flags -->
+  <div class="card">
+    <h2>🍪 Cookie Security Flags</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:14px">Every session cookie needs ALL THREE flags. Missing even one creates a vulnerability.</p>
+    <table class="flags-table">
+      <thead>
+        <tr><th>Flag</th><th>What it blocks</th><th>Without it...</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="flag-name">HttpOnly</span></td>
+          <td class="flag-blocks">JavaScript cannot read this cookie (<code>document.cookie</code> hides it). XSS payloads cannot steal the session token.</td>
+          <td class="flag-without">XSS attack on your page → attacker reads <code>document.cookie</code> → gets session token → logs in as victim.</td>
+        </tr>
+        <tr>
+          <td><span class="flag-name">Secure</span></td>
+          <td class="flag-blocks">Cookie is ONLY sent over HTTPS. Never transmitted over plain HTTP.</td>
+          <td class="flag-without">On public WiFi, attacker intercepts HTTP request → reads session cookie in plaintext → account taken over.</td>
+        </tr>
+        <tr>
+          <td><span class="flag-name">SameSite=Strict</span></td>
+          <td class="flag-blocks">Cookie NOT sent on cross-site requests. CSRF attacks from other websites get no session cookie.</td>
+          <td class="flag-without">CSRF attack (Lab 2A) succeeds — hidden form fires, bank sees valid session, processes transfer.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="background:#1e293b;border-radius:8px;padding:14px;margin-top:14px">
+      <pre style="color:#86efac;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;white-space:pre-wrap">// ✅ Complete secure cookie (server-side Node.js):
+res.cookie('session', sessionToken, {
+  httpOnly:  true,      // No JS access
+  secure:    true,      // HTTPS only
+  sameSite: 'Strict',   // No cross-site requests
+  maxAge:    3600000    // Expires in 1 hour
+});</pre>
+    </div>
+  </div>
+
+  <!-- Quiz -->
+  <div class="card">
+    <div class="quiz-section">
+      <h4>🧠 Quick Check — Answer These Before Revealing</h4>
+
+      <div class="q-item">
+        <p>1. Why is bcrypt better than MD5 for password hashing? Give one specific technical reason.</p>
+        <button class="reveal-btn" onclick="reveal(this)">Reveal Answer</button>
+        <div class="answer">bcrypt is intentionally SLOW — designed to take ~100-200ms per hash. This makes brute-force attacks impractical. MD5 was designed for SPEED (file checksums), which means attackers can try billions of guesses per second on modern GPUs.</div>
+      </div>
+
+      <div class="q-item">
+        <p>2. If a cookie has HttpOnly=true, can an XSS attack steal the session token?</p>
+        <button class="reveal-btn" onclick="reveal(this)">Reveal Answer</button>
+        <div class="answer">No. HttpOnly means <code>document.cookie</code> will NOT return that cookie. JavaScript — including injected XSS payloads — cannot read it. This is why defence-in-depth matters: even if XSS gets through your sanitisation, HttpOnly limits the damage.</div>
+      </div>
+
+      <div class="q-item">
+        <p>3. What attack does SameSite=Strict prevent, and how?</p>
+        <button class="reveal-btn" onclick="reveal(this)">Reveal Answer</button>
+        <div class="answer">SameSite=Strict prevents CSRF. When set, the browser ONLY sends the cookie on requests that originate from the same site. A hidden form on evil.com that posts to bank.com gets NO session cookie — the bank server sees an unauthenticated request and rejects it.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  function genBadToken() {
+    const t = 'session_' + Date.now();
+    document.getElementById('badToken').textContent = t;
+  }
+  function genGoodToken() {
+    const arr = new Uint8Array(32);
+    crypto.getRandomValues(arr);
+    const hex = Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
+    document.getElementById('goodToken').textContent = hex;
+  }
+  function reveal(btn) {
+    const answer = btn.nextElementSibling;
+    answer.classList.toggle('show');
+    btn.textContent = answer.classList.contains('show') ? 'Hide Answer' : 'Reveal Answer';
+  }
+</script>
+</body>
+</html>

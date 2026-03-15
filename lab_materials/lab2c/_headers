@@ -1,0 +1,18 @@
+/*
+  Cloudflare Pages _headers file
+  ─────────────────────
+  Place this file in the ROOT of your project folder.
+  Name it exactly:  _headers  (no extension, underscore prefix)
+  
+  Cloudflare Pages reads it and applies these HTTP headers to every page response.
+  After deploying, scan your site at: https://securityheaders.com
+  Target grade: A or A+
+*/
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()

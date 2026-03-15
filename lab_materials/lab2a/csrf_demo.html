@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 2A — CSRF Demo</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;padding:32px 16px}
+    .container{max-width:740px;margin:0 auto}
+    .lab-badge{display:inline-flex;align-items:center;gap:8px;background:#ede9fe;border:1px solid #8b5cf6;color:#5b21b6;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+    h1{font-size:24px;color:#1a1a2e;margin-bottom:6px}
+    .subtitle{color:#6c757d;font-size:14px;margin-bottom:28px}
+    .card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px}
+    .card h2{font-size:16px;color:#1a1a2e;margin-bottom:14px}
+    .instructions{background:#f5f3ff;border-left:4px solid #8b5cf6;border-radius:0 8px 8px 0;padding:16px 20px}
+    .instructions h3{color:#7c3aed;font-size:14px;margin-bottom:10px}
+    .instructions ol{padding-left:18px}
+    .instructions li{font-size:13px;color:#374151;margin-bottom:7px;line-height:1.5}
+    /* Simulated Bank UI */
+    .bank-header{background:linear-gradient(135deg,#1d4ed8,#3b82f6);border-radius:10px;padding:20px 24px;color:white;margin-bottom:16px}
+    .bank-header h3{font-size:18px;margin-bottom:4px}
+    .bank-header p{font-size:13px;opacity:0.85}
+    .balance-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;text-align:center;margin-bottom:16px}
+    .balance-box .amount{font-size:32px;font-weight:700;color:#1d4ed8}
+    .balance-box .label{font-size:13px;color:#64748b;margin-top:4px}
+    .transfer-form{display:flex;flex-direction:column;gap:10px}
+    .form-row{display:flex;gap:10px}
+    .form-row input,.form-row select{flex:1;padding:9px 12px;border:2px solid #e9ecef;border-radius:8px;font-size:13px;font-family:inherit}
+    .form-row input:focus,.form-row select:focus{outline:none;border-color:#3b82f6}
+    .btn-transfer{padding:10px;background:#1d4ed8;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+    .btn-transfer:hover{background:#1e40af}
+    #log{margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;max-height:140px;overflow-y:auto}
+    .log-entry{font-size:12px;font-family:'Courier New',monospace;color:#374151;padding:3px 0;border-bottom:1px solid #f1f5f9}
+    .log-entry.bad{color:#dc2626}
+    .log-entry.good{color:#16a34a}
+    /* Attacker page section */
+    .attacker-frame{border:3px solid #ef4444;border-radius:10px;overflow:hidden}
+    .attacker-header{background:#ef4444;padding:10px 16px;color:white;font-size:13px;font-weight:600}
+    .attacker-body{background:#fff5f5;padding:20px;position:relative}
+    .decoy{font-size:18px;color:#1a1a2e;text-align:center;margin-bottom:16px}
+    .hidden-form-viz{background:#fef2f2;border:2px dashed #fca5a5;border-radius:8px;padding:14px;font-size:12px;font-family:'Courier New',monospace;color:#991b1b;line-height:1.6}
+    .hidden-form-viz .comment{color:#ef4444;opacity:0.6}
+    .fire-btn{display:block;width:100%;margin-top:12px;padding:10px;background:#ef4444;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+    .fire-btn:hover{background:#dc2626}
+    /* Token section */
+    .token-demo{background:#f0fdf4;border:2px solid #86efac;border-radius:8px;padding:16px}
+    .token-demo h4{color:#16a34a;font-size:14px;margin-bottom:10px}
+    .token-display{background:#1e293b;border-radius:6px;padding:10px 14px;font-family:'Courier New',monospace;font-size:12px;color:#86efac;word-break:break-all;margin-bottom:10px}
+    .code-view{background:#1e293b;border-radius:8px;padding:14px}
+    .code-view pre{color:#e2e8f0;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+    .good{color:#86efac}
+    .comment{color:#64748b}
+    code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px}
+    .result-flash{padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;display:none}
+    .result-flash.show{display:block}
+    .result-flash.bad{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+    .result-flash.good{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+    @media (max-width:768px) {
+      .two-col{grid-template-columns:1fr}
+      body{padding:24px 12px}
+      .card{padding:18px}
+      h1{font-size:20px}
+      .balance-box .amount{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lab-badge">🛡️ Lab 2A — CSRF Demo</div>
+  <h1>Cross-Site Request Forgery</h1>
+  <p class="subtitle">Simulate how an attacker tricks your browser into making requests you never intended.</p>
+
+  <div class="card">
+    <div class="instructions">
+      <h3>📋 Your Tasks</h3>
+      <ol>
+        <li>The left panel simulates a bank where you're <strong>logged in</strong>.</li>
+        <li>Try a legitimate transfer — type an amount, click Transfer, watch the log.</li>
+        <li>The right panel is the <strong>attacker's page</strong>. Click "Fire Attack" — watch the log. The hidden form sends a transfer WITHOUT you filling in anything.</li>
+        <li>Understand why: the browser sends your session cookie automatically with any request to the bank.</li>
+        <li>Read the CSRF Token section at the bottom. Toggle CSRF protection ON/OFF and compare what happens.</li>
+        <li><strong>TODO:</strong> In the code panel, find where to add a CSRF token check to the transfer handler.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Two-column simulation -->
+  <div class="two-col">
+
+    <!-- Bank simulation -->
+    <div class="card" style="margin-bottom:0">
+      <div class="bank-header">
+        <h3>🏦 MyBank Online</h3>
+        <p>Logged in as: alice@email.com ✅</p>
+      </div>
+      <div class="balance-box">
+        <div class="amount" id="balance">$5,000</div>
+        <div class="label">Account Balance</div>
+      </div>
+      <div class="transfer-form">
+        <div class="form-row">
+          <input type="text" id="toAccount" placeholder="Recipient account">
+        </div>
+        <div class="form-row">
+          <input type="number" id="amount" placeholder="Amount ($)" min="1">
+        </div>
+        <button class="btn-transfer" onclick="doTransfer(false)">Transfer Money</button>
+      </div>
+    </div>
+
+    <!-- Attacker page -->
+    <div>
+      <div class="attacker-frame">
+        <div class="attacker-header">⚠️ THIS IS THE ATTACKER'S PAGE (evil.com)</div>
+        <div class="attacker-body">
+          <div class="decoy">🎉 You won a prize!</div>
+          <div class="hidden-form-viz">
+<span class="comment">&lt;!-- INVISIBLE to victim --&gt;</span>
+&lt;form id="attack"
+  action="mybank.com/transfer"
+  method="POST"
+  style="display:none"&gt;
+  &lt;input name="to" value="hacker_acc"&gt;
+  &lt;input name="amount" value="2500"&gt;
+&lt;/form&gt;
+&lt;script&gt;
+  document.getElementById('attack')
+    .submit(); <span class="comment">// fires on page load</span>
+&lt;/script&gt;
+          </div>
+          <button class="fire-btn" onclick="doTransfer(true)">⚡ Fire Attack (simulated)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared log -->
+  <div class="card">
+    <h2>📋 Bank Server Log</h2>
+    <div id="log"><div class="log-entry">Waiting for requests...</div></div>
+  </div>
+
+  <!-- CSRF Token defence toggle -->
+  <div class="card">
+    <h2>🔐 CSRF Token Defence</h2>
+    <div class="token-demo">
+      <h4>Current session token (only the real page knows this):</h4>
+      <div class="token-display" id="sessionToken">generating...</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <label style="font-size:14px;font-weight:600;color:#374151">CSRF Protection:</label>
+        <button id="toggleBtn" onclick="toggleProtection()"
+          style="padding:6px 16px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#ef4444;color:white">
+          OFF — Click to Enable
+        </button>
+      </div>
+      <p style="font-size:13px;color:#374151">When ON: the bank checks that the transfer request includes the correct token. The attacker's form has no token — the request is rejected.</p>
+    </div>
+  </div>
+
+  <!-- Code panel -->
+  <div class="card">
+    <h2>📄 The Fix: Adding CSRF Token to Forms</h2>
+    <div class="code-view">
+      <pre>
+<span class="comment">&lt;!-- ✅ Secure transfer form with CSRF token --&gt;</span>
+&lt;form action="/transfer" method="POST"&gt;
+
+  <span class="good">&lt;!-- Server generates this per session and embeds it --&gt;
+  &lt;input type="hidden" name="csrf_token"
+         value="a3f8b2c1d9e4f6..."&gt; &lt;!-- long random string --&gt;</span>
+
+  &lt;input type="text"   name="to"     placeholder="Recipient"&gt;
+  &lt;input type="number" name="amount" placeholder="Amount"&gt;
+  &lt;button type="submit"&gt;Transfer&lt;/button&gt;
+&lt;/form&gt;
+
+<span class="good">// Server-side check (Node.js example):
+if (req.body.csrf_token !== req.session.csrf_token) {
+  return res.status(403).send('CSRF check failed — request rejected');
+}
+// Only proceed if token matches</span>
+
+<span class="comment">// Also set cookies with SameSite=Strict:
+// Set-Cookie: session=abc123; SameSite=Strict; HttpOnly; Secure
+// With SameSite=Strict: cross-site requests carry NO cookie.
+// Attacker's form gets no session → bank rejects as unauthenticated.</span>
+      </pre>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let balance = 5000;
+  let csrfProtectionOn = false;
+  const sessionToken = generateToken();
+  document.getElementById('sessionToken').textContent = sessionToken;
+
+  function generateToken() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      .map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function toggleProtection() {
+    csrfProtectionOn = !csrfProtectionOn;
+    const btn = document.getElementById('toggleBtn');
+    btn.style.background = csrfProtectionOn ? '#16a34a' : '#ef4444';
+    btn.textContent = csrfProtectionOn ? 'ON — Click to Disable' : 'OFF — Click to Enable';
+  }
+
+  function doTransfer(isAttack) {
+    if (balance < 0) {
+      alert('⚠️ YOU RAN OUT OF MONEY!\n\nNo more transfers allowed.\n\nPlease reset the page or stay broke. 💸');
+      return;
+    }
+    const logEl = document.getElementById('log');
+    const now = new Date().toLocaleTimeString();
+
+    if (isAttack) {
+      const attackToken = null; // attacker doesn't know the token
+      if (csrfProtectionOn) {
+        addLog(`[${now}] ATTACK BLOCKED — CSRF token missing or invalid`, 'bad');
+        addLog(`[${now}] Expected: ${sessionToken.slice(0,12)}...  Got: null`, 'bad');
+        return;
+      }
+      balance -= 1000;
+      document.getElementById('balance').textContent = '$' + balance.toLocaleString();
+      addLog(`[${now}] ⚠️  ATTACK SUCCEEDED — Transfer of $2500 to hacker_acc processed`, 'bad');
+      addLog(`[${now}] Bank saw valid session cookie — could not detect forgery`, 'bad');
+    } else {
+      const to = document.getElementById('toAccount').value || '(empty)';
+      const amt = parseInt(document.getElementById('amount').value) || 0;
+      if (amt <= 0) { addLog(`[${now}] Error: enter a valid amount`, ''); return; }
+      balance -= amt;
+      document.getElementById('balance').textContent = '$' + balance.toLocaleString();
+      addLog(`[${now}] ✅ Transfer of $${amt} to ${to} — CSRF token: ${sessionToken.slice(0,8)}... ✓`, 'good');
+    }
+  }
+
+  function addLog(msg, type) {
+    const logEl = document.getElementById('log');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry' + (type ? ' '+type : '');
+    entry.textContent = msg;
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+</script>
+</body>
+</html>

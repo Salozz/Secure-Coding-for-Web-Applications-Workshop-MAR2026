@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 1A — Comment Board</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;padding:32px 16px}
+    .container{max-width:680px;margin:0 auto}
+    .lab-badge{display:inline-flex;align-items:center;gap:8px;background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+    h1{font-size:24px;color:#1a1a2e;margin-bottom:6px}
+    .subtitle{color:#6c757d;font-size:14px;margin-bottom:28px}
+    .card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px}
+    .card h2{font-size:16px;color:#1a1a2e;margin-bottom:16px}
+    .input-row{display:flex;gap:10px}
+    input[type="text"]{flex:1;padding:10px 14px;border:2px solid #e9ecef;border-radius:8px;font-size:14px;font-family:inherit;transition:border-color 0.2s}
+    input[type="text"]:focus{outline:none;border-color:#4361ee}
+    button{padding:10px 20px;background:#4361ee;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s}
+    button:hover{background:#3451d1}
+    #comments{margin-top:16px}
+    .comment-item{padding:12px 16px;border:1px solid #e9ecef;border-radius:8px;margin-top:10px;background:#f8f9fa;font-size:14px;color:#1a1a2e}
+    .instructions{background:#eef2ff;border-left:4px solid #4361ee;border-radius:0 8px 8px 0;padding:16px 20px}
+    .instructions h3{color:#4361ee;font-size:14px;margin-bottom:10px}
+    .instructions ol{padding-left:18px}
+    .instructions li{font-size:13px;color:#374151;margin-bottom:6px;line-height:1.5}
+    .payload-box{background:#1e293b;border-radius:8px;padding:12px 16px;margin:12px 0}
+    .payload-box code{color:#a3e635;font-size:13px;font-family:'Courier New',monospace;word-break:break-all;background:transparent;padding:0;border-radius:0}
+    .todo-banner{background:#fffbeb;border:2px dashed #fbbf24;border-radius:8px;padding:14px;margin-top:16px;font-size:13px;color:#92400e}
+    .todo-banner strong{display:block;margin-bottom:4px}
+    .code-view{background:#1e293b;border-radius:8px;padding:16px}
+    .code-view pre{color:#e2e8f0;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+    .code-view .bad{color:#f87171}
+    .code-view .good{color:#86efac}
+    .code-view .comment{color:#64748b}
+    code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px}
+    @media (max-width:768px) {
+      body{padding:24px 12px}
+      .container{max-width:100%}
+      .card{padding:18px}
+      h1{font-size:20px}
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lab-badge">⚠️ Lab 1A — XSS — Vulnerable Version</div>
+  <h1>Community Comment Board</h1>
+  <p class="subtitle">A simple comment board — with a security problem hidden in the code.</p>
+
+  <div class="card">
+    <div class="instructions">
+      <h3>📋 Your Tasks</h3>
+      <ol>
+        <li>Type a normal comment and click Post. Confirm it appears.</li>
+        <li>Now try this payload in the comment box:</li>
+      </ol>
+      <div class="payload-box">
+        <code>&lt;img src=x onerror="alert('XSS! Cookie: ' + document.cookie)"&gt;</code>
+      </div>
+      <ol start="3">
+        <li>The alert box = XSS attack working. An attacker could steal your session.</li>
+        <li>Look at the code panel below. Find the line marked <strong>❌ VULNERABLE</strong>.</li>
+        <li>Replace <code>innerHTML +=</code> with the safe version shown in the green comment.</li>
+        <li>Try the payload again — it should now appear as plain text, not execute.</li>
+        <li><strong>Bonus:</strong> Add the CSP meta tag shown at the bottom of the code panel.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💬 Post a Comment</h2>
+    <div class="input-row">
+      <input type="text" id="commentInput" placeholder="Type your comment here..." autocomplete="off">
+      <button onclick="postComment()">Post</button>
+    </div>
+    <div id="comments"></div>
+    <div class="todo-banner">
+      <strong>🔧 TODO: Fix postComment() in the &lt;script&gt; tag at the bottom of this file.</strong>
+      The function uses <code>innerHTML</code> — this lets user input run as HTML. Replace it with <code>textContent</code>.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📄 The Code</h2>
+    <div class="code-view">
+      <pre>
+<span class="comment">// The postComment() function — find this in the &lt;script&gt; tag below</span>
+
+function postComment() {
+  const input = document.getElementById(<span style="color:#fbbf24">'commentInput'</span>).value;
+  if (!input) return;
+
+  <span class="bad">// ❌ VULNERABLE — innerHTML parses input as HTML
+  //    Any &lt;script&gt;, &lt;img onerror&gt;, &lt;svg onload&gt; in input EXECUTES
+  document.getElementById('comments').innerHTML +=
+    '&lt;div class="comment-item"&gt;' + input + '&lt;/div&gt;';</span>
+
+  document.getElementById(<span style="color:#fbbf24">'commentInput'</span>).value = '';
+}
+
+<span class="good">// ✅ YOUR FIX — replace the ❌ block above with this:
+//
+  const div = document.createElement('div');
+  div.className = 'comment-item';
+  div.textContent = input;  // treats everything as TEXT, never HTML
+  document.getElementById('comments').appendChild(div);
+</span>
+<span class="comment">// ✅ BONUS FIX — add this inside &lt;head&gt; for a second layer of defence:
+// &lt;meta http-equiv="Content-Security-Policy"
+//   content="default-src 'self'; script-src 'self'"&gt;</span>
+      </pre>
+    </div>
+  </div>
+
+</div>
+<script>
+  function postComment() {
+    const input = document.getElementById('commentInput').value;
+    if (!input) return;
+    // ❌ VULNERABLE: innerHTML parses user input as HTML
+    document.getElementById('comments').innerHTML +=
+      '<div class="comment-item">' + input + '</div>';
+    document.getElementById('commentInput').value = '';
+  }
+</script>
+</body>
+</html>
