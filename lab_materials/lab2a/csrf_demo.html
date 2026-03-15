@@ -228,7 +228,7 @@ if (req.body.csrf_token !== req.session.csrf_token) {
       }
       balance -= 1000;
       document.getElementById('balance').textContent = '$' + balance.toLocaleString();
-      addLog(`[${now}] ⚠️  ATTACK SUCCEEDED — Transfer of $2500 to hacker_acc processed`, 'bad');
+      addLog(`[${now}] ⚠️  ATTACK SUCCEEDED — Transfer of $1000 to hacker_acc processed`, 'bad');
       addLog(`[${now}] Bank saw valid session cookie — could not detect forgery`, 'bad');
     } else {
       const to = document.getElementById('toAccount').value || '(empty)';
