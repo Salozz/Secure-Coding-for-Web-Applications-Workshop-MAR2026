@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔐 Secure Coding for Web Applications
+# Secure Coding for Web Applications
 
 ### Student Lab Pack
 
