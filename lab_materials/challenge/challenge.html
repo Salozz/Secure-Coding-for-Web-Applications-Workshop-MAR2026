@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Challenge — QuickLogin (Vulnerable)</title>
+  <!-- No security headers here — that's one of the issues! -->
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;padding:32px 16px}
+    .container{max-width:700px;margin:0 auto}
+    .lab-badge{display:inline-flex;align-items:center;gap:8px;background:#fef2f2;border:1px solid #ef4444;color:#b91c1c;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+    h1{font-size:24px;color:#1a1a2e;margin-bottom:6px}
+    .subtitle{color:#6c757d;font-size:14px;margin-bottom:28px}
+    .card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px}
+    .card h2{font-size:16px;color:#1a1a2e;margin-bottom:16px}
+    .challenge-box{background:#fef2f2;border:2px solid #ef4444;border-radius:10px;padding:20px;margin-bottom:20px}
+    .challenge-box h3{color:#b91c1c;font-size:15px;margin-bottom:10px}
+    .challenge-box p{font-size:13px;color:#374151;line-height:1.6;margin-bottom:8px}
+    .form-group{margin-bottom:14px}
+    label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+    input[type="text"],input[type="password"]{width:100%;padding:10px 14px;border:2px solid #e9ecef;border-radius:8px;font-size:14px;font-family:inherit}
+    input:focus{outline:none;border-color:#4361ee}
+    button{width:100%;padding:11px;background:#4361ee;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+    button:hover{background:#3451d1}
+    #welcome{margin-top:16px;font-size:15px;color:#1a1a2e;padding:10px 14px;border-radius:6px;background:#f8fafc;display:none}
+    #welcome.show{display:block}
+    .score-tracker{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:16px}
+    .score-tracker h4{font-size:14px;color:#374151;margin-bottom:12px}
+    .vuln-list{list-style:none}
+    .vuln-list li{padding:8px 12px;border-radius:6px;font-size:13px;color:#374151;margin-bottom:6px;display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;cursor:pointer;transition:all 0.15s}
+    .vuln-list li:hover{border-color:#4361ee}
+    .vuln-list li.found{background:#f0fdf4;border-color:#86efac;color:#166534}
+    .vuln-list li .check{width:20px;height:20px;border-radius:50%;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+    .vuln-list li.found .check{background:#10b981;border-color:#10b981;color:white}
+    .score-display{text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0}
+    .score-display .score-num{font-size:32px;font-weight:700;color:#4361ee}
+    .score-display p{font-size:13px;color:#6b7280}
+    .code-view{background:#1e293b;border-radius:8px;padding:16px;position:relative}
+    .code-view pre{color:#e2e8f0;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+    .code-view .vuln-marker{background:#451a1a;border-left:3px solid #ef4444;padding:2px 0 2px 6px;display:block;margin:2px 0;border-radius:0 4px 4px 0}
+    .comment{color:#64748b}
+    .bad{color:#f87171}
+    .hint-btn{padding:6px 12px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;font-size:12px;cursor:pointer;color:#374151}
+    .hint-btn:hover{background:#e5e7eb}
+    .hint-text{font-size:12px;color:#7c3aed;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:6px;padding:8px 12px;margin-top:6px;display:none}
+    .hint-text.show{display:block}
+    .reveal-all-btn{width:100%;padding:10px;background:#ef4444;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:12px}
+    .reveal-all-btn:hover{background:#dc2626}
+    code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px}
+    .timer{background:#4361ee;color:white;border-radius:8px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .timer span{font-size:13px;opacity:0.85}
+    .timer .time{font-size:22px;font-weight:700;font-family:'Courier New',monospace}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lab-badge">🏆 Challenge Round — Code Review</div>
+  <h1>QuickLogin — Vulnerable App</h1>
+  <p class="subtitle">Find all the security vulnerabilities in this application. There are at least 6.</p>
+
+  <!-- Timer -->
+  <div class="timer">
+    <span>⏱ Time remaining</span>
+    <div class="time" id="timer">20:00</div>
+    <button onclick="toggleTimer()" style="padding:5px 12px;background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:white;cursor:pointer;font-size:12px" id="timerBtn">Start</button>
+  </div>
+
+  <!-- Challenge instructions -->
+  <div class="challenge-box">
+    <h3>🎯 Your Mission</h3>
+    <p>Review the code in this page (look at the &lt;script&gt; tag and the HTML). Find every vulnerability, name its type, and write down how you would fix it.</p>
+    <p>Work in groups of 3–4. Document your findings in a Google Doc or text file. At the end, you'll present one finding to the class.</p>
+    <p><strong>Scoring:</strong> 1 point per vulnerability found · 2 points if you describe the fix correctly · Bonus point if you find something not in the list</p>
+  </div>
+
+  <!-- Score tracker -->
+  <div class="card">
+    <div class="score-tracker">
+      <h4>📝 Track Your Findings — Click each one when your group finds it</h4>
+      <ul class="vuln-list" id="vulnList">
+        <li onclick="toggleVuln(this,0)">
+          <div class="check"></div>
+          <span>Vulnerability #1 — <em>Hint: how does the form send credentials?</em></span>
+        </li>
+        <li onclick="toggleVuln(this,1)">
+          <div class="check"></div>
+          <span>Vulnerability #2 — <em>Hint: look at how the URL parameter is displayed</em></span>
+        </li>
+        <li onclick="toggleVuln(this,2)">
+          <div class="check"></div>
+          <span>Vulnerability #3 — <em>Hint: how is the session token generated?</em></span>
+        </li>
+        <li onclick="toggleVuln(this,3)">
+          <div class="check"></div>
+          <span>Vulnerability #4 — <em>Hint: check the cookie being set</em></span>
+        </li>
+        <li onclick="toggleVuln(this,4)">
+          <div class="check"></div>
+          <span>Vulnerability #5 — <em>Hint: where are the passwords stored?</em></span>
+        </li>
+        <li onclick="toggleVuln(this,5)">
+          <div class="check"></div>
+          <span>Vulnerability #6 — <em>Hint: where does the login check happen?</em></span>
+        </li>
+        <li onclick="toggleVuln(this,6)" style="border-style:dashed">
+          <div class="check"></div>
+          <span>🌟 Bonus — <em>Find something else not in the list above</em></span>
+        </li>
+      </ul>
+      <div class="score-display">
+        <div class="score-num" id="scoreNum">0</div>
+        <p>vulnerabilities found</p>
+      </div>
+      <button class="reveal-all-btn" onclick="revealAll()">Reveal All Answers (use after debrief)</button>
+    </div>
+  </div>
+
+  <!-- The vulnerable app UI -->
+  <div class="card">
+    <h2>🖥 The Application</h2>
+    <!-- ISSUE 1: GET method exposes credentials in URL -->
+    <form onsubmit="checkLogin(event)" method="GET" style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group" style="margin:0">
+        <label>Username</label>
+        <input type="text" id="user" name="user" placeholder="Username" autocomplete="off">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Password</label>
+        <input type="password" id="pass" name="pass" placeholder="Password" autocomplete="off">
+      </div>
+      <button type="submit">Login</button>
+    </form>
+
+    <!-- ISSUE 2: XSS via innerHTML with URL parameter -->
+    <div id="welcome"></div>
+  </div>
+
+  <!-- The code to review -->
+  <div class="card">
+    <h2>📄 Source Code to Review</h2>
+    <div class="code-view">
+      <pre>
+<span class="comment">&lt;!-- The login form --&gt;</span>
+<span class="vuln-marker">&lt;form method="GET" action="/login"&gt;  <span class="bad">&lt;!-- ISSUE? --&gt;</span></span>
+  &lt;input type="text"     id="user" placeholder="Username"&gt;
+  &lt;input type="password" id="pass" placeholder="Password"&gt;
+  &lt;button&gt;Login&lt;/button&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+  <span class="comment">// Display welcome message from URL</span>
+  <span class="vuln-marker">const name = new URLSearchParams(window.location.search).get('name');
+  document.getElementById('welcome').innerHTML = 'Hello ' + name;  <span class="bad">// ISSUE?</span></span>
+
+  <span class="comment">// Create session token</span>
+  <span class="vuln-marker">const SESSION = 'user_' + Date.now();  <span class="bad">// ISSUE?</span></span>
+
+  <span class="comment">// Set session cookie</span>
+  <span class="vuln-marker">document.cookie = 'session=' + SESSION;  <span class="bad">// ISSUE?</span>
+  <span class="comment">// Missing: HttpOnly, Secure, SameSite</span></span>
+
+  <span class="comment">// Password check</span>
+  <span class="vuln-marker">const PASSWORDS = { admin: 'admin123', user: 'password' };  <span class="bad">// ISSUE?</span></span>
+
+  <span class="vuln-marker">function checkLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById('user').value;
+    const p = document.getElementById('pass').value;
+    if (PASSWORDS[u] === p) {  <span class="bad">// ISSUE?</span>
+      window.location.href = '/dashboard?user=' + u;
+    }
+  }</span>
+&lt;/script&gt;
+      </pre>
+    </div>
+  </div>
+
+  <!-- Answer key (hidden) -->
+  <div class="card" id="answerKey" style="display:none">
+    <h2 style="color:#ef4444">📋 Answer Key</h2>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px">
+        <strong style="color:#dc2626">Issue 1: GET method for credentials</strong>
+        <p style="font-size:13px;color:#374151;margin-top:6px">Password appears in the URL, server logs, browser history, and Referer headers. Fix: use <code>method="POST"</code>. POST params go in the request body, not the URL.</p>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px">
+        <strong style="color:#dc2626">Issue 2: XSS via innerHTML with URL parameter</strong>
+        <p style="font-size:13px;color:#374151;margin-top:6px">The <code>?name=</code> URL parameter is inserted as HTML. Attacker crafts a malicious link → victim's browser executes it. Fix: use <code>textContent</code> instead of <code>innerHTML</code>.</p>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px">
+        <strong style="color:#dc2626">Issue 3: Predictable session token</strong>
+        <p style="font-size:13px;color:#374151;margin-top:6px"><code>Date.now()</code> is a millisecond timestamp — an attacker who knows when you logged in can guess the token. Fix: use <code>crypto.randomBytes(32).toString('hex')</code> on the server.</p>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px">
+        <strong style="color:#dc2626">Issue 4: Cookie with no security flags</strong>
+        <p style="font-size:13px;color:#374151;margin-top:6px">No HttpOnly (JS can read it → XSS steals session), no Secure (sent over HTTP), no SameSite (CSRF works). Fix: set all three flags server-side. Never create session cookies from client JS.</p>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px">
+        <strong style="color:#dc2626">Issue 5: Credentials in client-side code</strong>
+        <p style="font-size:13px;color:#374151;margin-top:6px">The PASSWORDS object is in the JavaScript source — visible to anyone via DevTools → Sources or View Page Source. Fix: authentication must ALWAYS happen server-side. The client never sees stored passwords.</p>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px">
+        <strong style="color:#dc2626">Issue 6: Client-side authentication logic</strong>
+        <p style="font-size:13px;color:#374151;margin-top:6px">The login check is in the browser. Any user can open the console and type <code>window.location.href='/dashboard?user=admin'</code> to bypass it completely. Fix: ALL auth decisions are server-side. Server validates session token on every protected request.</p>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px">
+        <strong style="color:#15803d">Bonus Issue 7: Open redirect</strong>
+        <p style="font-size:13px;color:#374151;margin-top:6px"><code>window.location.href='/dashboard?user=' + u</code> — if the attacker controls the value of u (e.g. via URL manipulation), they could redirect to a malicious site. Validate and sanitise all redirect targets.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  // ============================================================
+  // THE VULNERABLE CODE — THIS IS WHAT STUDENTS ARE REVIEWING
+  // ============================================================
+
+  // ISSUE 2: XSS via innerHTML with URL param
+  const name = new URLSearchParams(window.location.search).get('name');
+  if (name) {
+    const welcomeEl = document.getElementById('welcome');
+    welcomeEl.classList.add('show');
+    welcomeEl.innerHTML = 'Hello ' + name; // ❌ VULNERABLE
+  }
+
+  // ISSUE 3: Predictable session token
+  const SESSION = 'user_' + Date.now();
+
+  // ISSUE 4: Cookie with no security flags
+  document.cookie = 'session=' + SESSION; // ❌ No HttpOnly, Secure, or SameSite
+
+  // ISSUE 5: Credentials in client JS
+  const PASSWORDS = { admin: 'admin123', user: 'password' }; // ❌ Visible to anyone
+
+  // ISSUE 6: Client-side auth check
+  function checkLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById('user').value;
+    const p = document.getElementById('pass').value;
+    if (PASSWORDS[u] === p) { // ❌ Client-side check — bypassable in console
+      window.location.href = '/dashboard?user=' + u; // ❌ Open redirect
+    } else {
+      alert('Login failed');
+    }
+  }
+
+  // ============================================================
+  // SCORING & TIMER LOGIC
+  // ============================================================
+  let found = 0;
+  const scores = [false,false,false,false,false,false,false];
+
+  function toggleVuln(li, idx) {
+    scores[idx] = !scores[idx];
+    li.classList.toggle('found');
+    li.querySelector('.check').textContent = scores[idx] ? '✓' : '';
+    found = scores.filter(Boolean).length;
+    document.getElementById('scoreNum').textContent = found;
+  }
+
+  let timerSeconds = 1200; // 20 minutes
+  let timerRunning = false;
+  let timerInterval;
+
+  function toggleTimer() {
+    timerRunning = !timerRunning;
+    document.getElementById('timerBtn').textContent = timerRunning ? 'Pause' : 'Resume';
+    if (timerRunning) {
+      timerInterval = setInterval(()=>{
+        timerSeconds--;
+        const m = Math.floor(timerSeconds/60);
+        const s = timerSeconds%60;
+        document.getElementById('timer').textContent =
+          String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+        if (timerSeconds <= 0) { clearInterval(timerInterval); timerRunning=false; }
+      }, 1000);
+    } else {
+      clearInterval(timerInterval);
+    }
+  }
+
+  function revealAll() {
+    if (!confirm('Reveal all answers? Only do this after the group debrief.')) return;
+    document.getElementById('answerKey').style.display = 'block';
+    document.getElementById('answerKey').scrollIntoView({behavior:'smooth'});
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 3 — Deploy to the Internet</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;padding:32px 16px}
+    .container{max-width:780px;margin:0 auto}
+    .lab-badge{display:inline-flex;align-items:center;gap:8px;background:#e0f2fe;border:1px solid #38bdf8;color:#0369a1;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+    h1{font-size:24px;color:#1a1a2e;margin-bottom:6px}
+    .subtitle{color:#6c757d;font-size:14px;margin-bottom:28px}
+    .card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px}
+    .card h2{font-size:16px;color:#1a1a2e;margin-bottom:16px}
+    /* Phase header */
+    .phase{border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:16px}
+    .phase.prep{background:#eff6ff;border:1px solid #bfdbfe}
+    .phase.git{background:#f0fdf4;border:1px solid #86efac}
+    .phase.github{background:#f5f3ff;border:1px solid #c4b5fd}
+    .phase.netlify{background:#fff7ed;border:1px solid #fed7aa}
+    .phase.verify{background:#ecfdf5;border:1px solid #6ee7b7}
+    .phase-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;color:white}
+    .phase.prep .phase-num{background:#3b82f6}
+    .phase.git .phase-num{background:#10b981}
+    .phase.github .phase-num{background:#7c3aed}
+    .phase.netlify .phase-num{background:#f97316}
+    .phase.verify .phase-num{background:#059669}
+    .phase-content h3{font-size:15px;font-weight:700;margin-bottom:8px}
+    .phase.prep .phase-content h3{color:#1d4ed8}
+    .phase.git .phase-content h3{color:#15803d}
+    .phase.github .phase-content h3{color:#6d28d9}
+    .phase.netlify .phase-content h3{color:#ea580c}
+    .phase.verify .phase-content h3{color:#059669}
+    .phase-content ol{padding-left:18px}
+    .phase-content li{font-size:13px;color:#374151;margin-bottom:5px;line-height:1.5}
+    .cmd-block{background:#1e293b;border-radius:6px;padding:8px 12px;margin:8px 0}
+    .cmd-block code{color:#a3e635;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;display:block;background:transparent;padding:0;border-radius:0}
+    .cmd-block code .comment{color:#64748b}
+    .cmd-block code .output{color:#94a3b8}
+    .trouble-item{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin-bottom:8px}
+    .trouble-item .problem{font-size:13px;font-weight:600;color:#92400e;margin-bottom:4px}
+    .trouble-item .solution{font-size:13px;color:#374151;line-height:1.5}
+    .backup-path{background:#fef3c7;border:2px dashed #fbbf24;border-radius:8px;padding:16px}
+    .backup-path h4{color:#d97706;font-size:14px;margin-bottom:8px}
+    .backup-path ol{padding-left:18px}
+    .backup-path li{font-size:13px;color:#374151;margin-bottom:5px;line-height:1.5}
+    .checklist-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;background:#f8fafc}
+    .checklist-item:hover{border-color:#4361ee;background:#eef2ff}
+    .checklist-item.checked{background:#f0fdf4;border-color:#86efac}
+    .checklist-item .cb{width:20px;height:20px;border:2px solid #d1d5db;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all 0.15s}
+    .checklist-item.checked .cb{background:#10b981;border-color:#10b981;color:white}
+    .checklist-item span{font-size:13px;color:#374151}
+    code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px}
+    a{color:#4361ee;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .win-banner{background:linear-gradient(135deg,#059669,#10b981);border-radius:10px;padding:20px;color:white;text-align:center}
+    .win-banner h3{font-size:20px;margin-bottom:6px}
+    .win-banner p{font-size:14px;opacity:0.9}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lab-badge">🚀 Lab 3 — Secure Deployment</div>
+  <h1>Deploy to the Internet</h1>
+  <p class="subtitle">Push your patched code to GitHub, deploy to Netlify, verify your security headers score A+.</p>
+
+  <!-- Pre-flight checklist -->
+  <div class="card">
+    <h2>✅ Before You Start — Checklist</h2>
+    <div id="checklist">
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span><code>index.html</code> — uses <code>textContent</code> not <code>innerHTML</code> (Lab 1A fixed)</span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span><code>index.html</code> — XSS payload now appears as text, does not execute</span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span><code>_headers</code> file exists in the root of your project folder (same level as index.html)</span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span>You have a GitHub account and are logged in at github.com</span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span>You have a Netlify account and are logged in at app.netlify.com</span></div>
+      <div class="checklist-item" onclick="tick(this)"><div class="cb"></div><span>Git is installed — run <code>git --version</code> in the terminal to confirm</span></div>
+    </div>
+  </div>
+
+  <!-- Phase 1: Git init -->
+  <div class="phase git">
+    <div class="phase-num">1</div>
+    <div class="phase-content">
+      <h3>Initialise Git in Your Project Folder</h3>
+      <p style="font-size:13px;color:#374151;margin-bottom:8px">Open VS Code terminal: <strong>View → Terminal</strong> (or Ctrl+`). Make sure you are inside your project folder.</p>
+      <div class="cmd-block">
+        <code>git init
+<span class="output"># Expected: Initialized empty Git repository in .../my-project/.git/</span>
+<br>
+
+git add .
+<span class="comment"># Stages all files for commit. The dot means "everything in this folder"</span>
+<br>
+
+git status
+<span class="output"># Shows files in green = ready to commit</span>
+<br>
+
+git commit -m "Secure web app: fixed XSS, SQLi, CSRF, headers"
+<span class="output"># Creates a snapshot. You'll see: [main (root-commit) abc1234]</span></code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2: GitHub -->
+  <div class="phase github">
+    <div class="phase-num">2</div>
+    <div class="phase-content">
+      <h3>Create a GitHub Repository and Push</h3>
+      <ol>
+        <li>Go to <a href="https://github.com" target="_blank">github.com</a> → click <strong>+</strong> (top right) → <strong>New repository</strong></li>
+        <li>Name: <code>secure-web-app</code> · Visibility: Public · Do NOT tick README/gitignore/license</li>
+        <li>Click <strong>Create repository</strong>. Copy the HTTPS URL shown (looks like <code>https://github.com/YOUR_NAME/secure-web-app.git</code>)</li>
+        <li>Back in VS Code terminal:</li>
+      </ol>
+      <div class="cmd-block">
+        <code>git remote add origin https://github.com/YOUR_USERNAME/secure-web-app.git
+<span class="comment"># Replace YOUR_USERNAME with your actual GitHub username</span>
+<br>
+
+git branch -M main
+<span class="comment"># Renames branch to 'main' (modern convention)</span>
+<br>
+
+git push -u origin main
+<span class="comment"># Uploads your code to GitHub. May ask for login.</span>
+<span class="output"># If password fails: use a Personal Access Token instead (see troubleshooting)</span></code>
+      </div>
+      <p style="font-size:13px;color:#374151;margin-top:8px">✅ Refresh github.com/YOUR_USERNAME/secure-web-app — your files should appear.</p>
+    </div>
+  </div>
+
+  <!-- Phase 3: Netlify -->
+  <div class="phase netlify">
+    <div class="phase-num">3</div>
+    <div class="phase-content">
+      <h3>Deploy on Netlify</h3>
+      <ol>
+        <li>Go to <a href="https://app.netlify.com" target="_blank">app.netlify.com</a> → Log in</li>
+        <li>Click <strong>Add new site</strong> → <strong>Import an existing project</strong> → <strong>Deploy with GitHub</strong></li>
+        <li>Authorise Netlify → select your <code>secure-web-app</code> repository</li>
+        <li>Build settings: leave <strong>all fields blank</strong> (static HTML, no build needed)</li>
+        <li>Click <strong>Deploy site</strong> — wait ~30 seconds</li>
+        <li>Netlify gives you a URL: e.g. <code>brave-coder-abc123.netlify.app</code></li>
+        <li><strong>Click the URL — your site is LIVE with HTTPS!</strong></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Phase 4: Verify headers -->
+  <div class="phase verify">
+    <div class="phase-num">4</div>
+    <div class="phase-content">
+      <h3>Verify Your Security Headers</h3>
+      <ol>
+        <li>Copy your Netlify URL (e.g. <code>brave-coder-abc123.netlify.app</code>)</li>
+        <li>Go to <a href="https://securityheaders.com" target="_blank">securityheaders.com</a></li>
+        <li>Paste your URL → click <strong>Scan</strong></li>
+        <li>Target: <strong>A or A+</strong> grade</li>
+        <li>Share your URL and grade in the class chat! 🎉</li>
+      </ol>
+      <p style="font-size:13px;color:#374151;margin-top:8px">If you get B or lower: check your <code>_headers</code> file is in the root of the project folder (not in a subfolder), and that it has no file extension.</p>
+    </div>
+  </div>
+
+  <!-- Troubleshooting -->
+  <div class="card">
+    <h2>🔧 Troubleshooting</h2>
+    <div class="trouble-item">
+      <div class="problem">Error: "git: command not found"</div>
+      <div class="solution">Git is not installed. Download from <a href="https://git-scm.com" target="_blank">git-scm.com</a>, install it, then restart VS Code. OR skip to the drag-and-drop path below.</div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">Error: "Please tell me who you are"</div>
+      <div class="solution">Run these two commands, then try again:<br>
+        <code>git config --global user.email "your@email.com"</code><br>
+        <code>git config --global user.name "Your Name"</code>
+      </div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">Error: "Authentication failed" when pushing</div>
+      <div class="solution">GitHub no longer accepts account passwords for git push. Create a Personal Access Token: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token → tick "repo" → Generate. Use this token as the password.</div>
+    </div>
+    <div class="trouble-item">
+      <div class="problem">securityheaders.com gives grade B or C</div>
+      <div class="solution">Your <code>_headers</code> file may not be in the right place. It must be in the project root (same folder as <code>index.html</code>), named exactly <code>_headers</code> with no .txt or other extension. Re-deploy after moving it.</div>
+    </div>
+  </div>
+
+  <!-- Drag and drop backup -->
+  <div class="card">
+    <div class="backup-path">
+      <h4>🔄 Backup Path — Deploy without Git</h4>
+      <p style="font-size:13px;color:#92400e;margin-bottom:10px">If Git isn't working, you can still deploy directly:</p>
+      <ol>
+        <li>Go to <a href="https://app.netlify.com" target="_blank">app.netlify.com</a></li>
+        <li>On the dashboard, scroll down to the section that says <em>"Want to deploy a new site without connecting to Git?"</em></li>
+        <li>Drag your entire <strong>project folder</strong> (not individual files) onto the dashed rectangle</li>
+        <li>Netlify deploys in ~5 seconds and gives you a live URL immediately</li>
+        <li>The <code>_headers</code> file must be inside the folder before you drag it</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div class="win-banner">
+    <h3>🎉 You shipped secure code to the internet!</h3>
+    <p>HTTPS automatic · Security headers verified · Git workflow · Real deployment pipeline</p>
+    <p style="margin-top:6px;font-size:13px">Share your URL in the class chat → paste it at securityheaders.com → screenshot your A+ grade</p>
+  </div>
+
+</div>
+<script>
+  function tick(el) {
+    el.classList.toggle('checked');
+    const cb = el.querySelector('.cb');
+    cb.textContent = el.classList.contains('checked') ? '✓' : '';
+  }
+</script>
+</body>
+</html>

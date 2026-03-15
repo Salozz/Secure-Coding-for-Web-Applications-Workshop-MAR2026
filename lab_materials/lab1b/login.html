@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 1B — Login Form (SQL Injection)</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;padding:32px 16px}
+    .container{max-width:740px;margin:0 auto}
+    .lab-badge{display:inline-flex;align-items:center;gap:8px;background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px}
+    h1{font-size:24px;color:#1a1a2e;margin-bottom:6px}
+    .subtitle{color:#6c757d;font-size:14px;margin-bottom:28px}
+    .card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px}
+    .card h2{font-size:16px;color:#1a1a2e;margin-bottom:16px}
+    .form-group{margin-bottom:14px}
+    label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+    input[type="text"],input[type="password"]{width:100%;padding:10px 14px;border:2px solid #e9ecef;border-radius:8px;font-size:14px;font-family:inherit;transition:border-color 0.2s}
+    input:focus{outline:none;border-color:#4361ee}
+    button{width:100%;padding:11px;background:#4361ee;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+    button:hover{background:#3451d1}
+    #result{margin-top:16px;padding:14px 16px;border-radius:8px;font-size:13px;font-family:'Courier New',monospace;word-break:break-all;line-height:1.6;display:none}
+    #result.show{display:block}
+    #result.injected{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+    #result.normal{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+    .instructions{background:#eef2ff;border-left:4px solid #4361ee;border-radius:0 8px 8px 0;padding:16px 20px}
+    .instructions h3{color:#4361ee;font-size:14px;margin-bottom:10px}
+    .instructions ol{padding-left:18px}
+    .instructions li{font-size:13px;color:#374151;margin-bottom:7px;line-height:1.5}
+    .payload-box{background:#1e293b;border-radius:8px;padding:10px 14px;margin:8px 0}
+    .payload-box code{color:#a3e635;font-size:12px;font-family:'Courier New',monospace;background:transparent;padding:0;border-radius:0}
+    .code-view{background:#1e293b;border-radius:8px;padding:16px}
+    .code-view pre{color:#e2e8f0;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+    .bad{color:#f87171}
+    .good{color:#86efac}
+    .comment{color:#64748b}
+    code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px}
+    .tip{background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin-top:10px;font-size:12px;color:#92400e}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lab-badge">⚠️ Lab 1B — SQL Injection — Vulnerable Version</div>
+  <h1>Login Form</h1>
+  <p class="subtitle">A login form that builds SQL queries from user input — open DevTools (F12) Console to watch the queries.</p>
+
+  <div class="card">
+    <div class="instructions">
+      <h3>📋 Your Tasks</h3>
+      <ol>
+        <li>Open DevTools: press <strong>F12</strong> → click the <strong>Console</strong> tab. Keep it visible.</li>
+        <li>Try a normal login: username <code>alice</code>, password <code>pass123</code>. Read the query.</li>
+        <li>Now try this SQL injection payload in the <strong>username</strong> field:</li>
+      </ol>
+      <div class="payload-box">
+        <code>admin' OR '1'='1' --</code>
+      </div>
+      <ol start="4">
+        <li>Read the query in the console. Where did the password check go?</li>
+        <li>Try this payload in the <strong>password</strong> field instead:</li>
+      </ol>
+      <div class="payload-box">
+        <code>' OR '1'='1</code>
+      </div>
+      <ol start="6">
+        <li>Find the vulnerable line in the code panel (marked ❌). Replace string concatenation with the parameterised pattern shown in green.</li>
+      </ol>
+      <div class="tip">💡 Open DevTools → Console before clicking Login to see the query that gets sent to the database.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔐 Login</h2>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="Try: alice  OR  admin' OR '1'='1' --" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Try: pass123  OR  ' OR '1'='1" autocomplete="off">
+    </div>
+    <button onclick="login()">Login</button>
+    <div id="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>📄 The Code (find this in the &lt;script&gt; tag)</h2>
+    <div class="code-view">
+      <pre>
+function login() {
+  const u = document.getElementById(<span style="color:#fbbf24">'username'</span>).value;
+  const p = document.getElementById(<span style="color:#fbbf24">'password'</span>).value;
+
+  <span class="bad">// ❌ VULNERABLE — string concatenation
+  //    User input is pasted DIRECTLY into the SQL command.
+  //    A single quote can break out of the string and
+  //    inject new SQL logic.
+  const query = `SELECT * FROM users
+    WHERE username='${u}' AND password='${p}'`;</span>
+
+  console.log('QUERY SENT:', query);
+  showQuery(query, u);
+}
+
+<span class="good">// ✅ YOUR FIX — replace the ❌ block with this:
+//
+  const template = 'SELECT * FROM users WHERE username = ? AND password = ?';
+  const values   = [u, p];
+  //
+  // The ? are placeholders. User input goes into values[].
+  // The database engine NEVER mixes them into the template.
+  // Even if u = "admin' OR '1'='1' --", it's treated as a
+  // literal string to search for — not as SQL commands.
+  console.log('TEMPLATE:', template);
+  console.log('VALUES:  ', values);</span>
+      </pre>
+    </div>
+  </div>
+
+</div>
+<script>
+  function login() {
+    const u = document.getElementById('username').value;
+    const p = document.getElementById('password').value;
+    if (!u || !p) return;
+
+    // ❌ VULNERABLE: string concatenation
+    const query = `SELECT * FROM users WHERE username='${u}' AND password='${p}'`;
+
+    console.log('%cQUERY SENT:', 'color:#f87171;font-weight:bold', query);
+
+    const resultEl = document.getElementById('result');
+    resultEl.classList.add('show');
+
+    const isInjected = query.toLowerCase().includes("or '1'='1") ||
+                       query.includes("--") ||
+                       query.toLowerCase().includes("or 1=1");
+
+    if (isInjected) {
+      resultEl.className = 'show injected';
+      resultEl.innerHTML = `<strong>🚨 INJECTION DETECTED!</strong><br><br>
+        <strong>Query sent:</strong><br>${escHtml(query)}<br><br>
+        <strong>What happened:</strong> The password check was bypassed. The database returns the admin account with no password needed.`;
+    } else {
+      resultEl.className = 'show normal';
+      resultEl.innerHTML = `<strong>✅ Normal login query</strong><br><br>
+        <strong>Query sent:</strong><br>${escHtml(query)}<br><br>
+        Now try the injection payload in the username field.`;
+    }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
