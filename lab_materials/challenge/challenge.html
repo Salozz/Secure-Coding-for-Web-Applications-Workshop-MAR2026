@@ -249,6 +249,7 @@
     const u = document.getElementById('user').value;
     const p = document.getElementById('pass').value;
     if (PASSWORDS[u] === p) { // ❌ Client-side check — bypassable in console
+      alert('✅ Login successful! Welcome, ' + u);
       window.location.href = '/dashboard?user=' + u; // ❌ Open redirect
     } else {
       alert('Login failed');
