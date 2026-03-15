@@ -13,6 +13,8 @@
 ![Vulnerabilities](https://img.shields.io/badge/Vulnerabilities-5-red)
 ![Difficulty](https://img.shields.io/badge/Difficulty-Beginner-yellow)
 
+**[Live Demo](https://salozz-secureweb-workshop-mar26.netlify.app/)**
+
 </div>
 
 ---
