@@ -14,7 +14,7 @@
 ![Difficulty](https://img.shields.io/badge/Difficulty-Beginner-yellow)
 
 ---
-**[https://salozz-secureweb-workshop-mar26.netlify.app/](https://salozz-secureweb-workshop-mar26.bell-satis.workers.dev/)**
+**https://secureweb-workshop-mar26.salozz.workers.dev/**
 </div>
 
 ---
